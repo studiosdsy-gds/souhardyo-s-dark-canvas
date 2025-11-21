@@ -298,7 +298,7 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
             `}>
               <img 
                 src={logoImg} 
-                alt="Logo" 
+                alt="Souhardyo Dey Portfolio Logo" // SEO Update: Detailed Alt Text
                 className="w-5 h-5 md:w-10 md:h-10 object-contain" 
               />
             </div>
@@ -338,7 +338,6 @@ export default function Index() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // --- EMAILJS CONFIGURATION ---
-  // Replace these with your actual keys from EmailJS Dashboard
   const SERVICE_ID = "service_91z7bip";
   const TEMPLATE_ID = "template_lyneuwr";
   const PUBLIC_KEY = "KNrnGILkw5jrZ3WzR";
@@ -425,13 +424,6 @@ export default function Index() {
     setSending(true);
 
     if (!formRef.current) return;
-
-    // Check if keys are still placeholders
-    // if (SERVICE_ID === "service_91z7bip") {
-    //   toast.error("EmailJS not configured! Please check the code.");
-    //   setSending(false);
-    //   return;
-    // }
 
     emailjs
       .sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, {
@@ -573,7 +565,7 @@ export default function Index() {
 
               <div className="max-w-4xl mx-auto text-center mb-16 space-y-6 text-lg text-muted-foreground leading-relaxed">
                 <p>
-                  I'm a Game Developer and VFX & CGI Artist with expertise in creating 
+                  I am <strong>Souhardyo Dey</strong>, a Game Developer and VFX & CGI Artist with expertise in creating 
                   stunning 3D environments and visual effects. My work focuses on making worlds from my imagination and 
                   creating games based on those worlds. 
                 </p>
@@ -593,7 +585,11 @@ export default function Index() {
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="relative z-10">
                       <div className="h-16 w-auto mb-6 flex items-center justify-start">
-                        <img src={studio.logo} alt={studio.name} className="h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                        <img 
+                          src={studio.logo} 
+                          alt={`${studio.name} - Co-founded by Souhardyo Dey`} // SEO Update
+                          className="h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
+                        />
                       </div>
                       <h3 className="text-2xl font-bold text-white mb-2">{studio.name}</h3>
                       <p className="text-sm text-primary font-medium uppercase tracking-wider mb-4">{studio.role}</p>
@@ -643,7 +639,7 @@ export default function Index() {
                       <div className="aspect-video overflow-hidden bg-gray-900">
                         <img 
                           src={project.image} 
-                          alt={project.title}
+                          alt={`${project.title} - Game Project by Souhardyo Dey`} // SEO Update
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-80" />
