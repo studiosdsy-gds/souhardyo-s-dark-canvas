@@ -15,35 +15,21 @@ import {
   Cuboid, 
   Layers, 
   Wand2, 
-  Ghost,
   Instagram,
   Youtube,
   Github,
-  Heart,   
   Box,     
-  Palette, 
   ExternalLink,
-  Mail
+  Mail,
+  Gamepad2,
+  Palette
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import logoImg from '@/assets/your-logo.png';
-import { supabase } from "@/integrations/supabase/client"; 
-import GlobalLoader from "@/components/GlobalLoader";
-// --- IMPORT EMAILJS ---
 import emailjs from '@emailjs/browser';
-
-// --- Types ---
-interface Project {
-  id: string;
-  title: string;
-  category: string;
-  image: string;
-  description: string;
-  featured: boolean;
-}
 
 // --- Data Constants ---
 const STUDIOS_CARDS = [
@@ -61,8 +47,15 @@ const STUDIOS_CARDS = [
   }
 ];
 
-// --- Social Links Configuration ---
 const SOCIAL_LINKS = [
+   {
+    id: 'yt-dev',
+    platform: 'YouTube',
+    title: 'Souhardyo Dey', 
+    url: 'https://www.youtube.com/@SouhardyoDey',
+    icon: Youtube,
+    color: 'text-[#FF0000]' 
+  },  
   {
     id: 'insta-personal',
     platform: 'Instagram',
@@ -71,6 +64,15 @@ const SOCIAL_LINKS = [
     icon: Instagram,
     color: 'text-[#E1306C]' 
   },
+    {
+    id: 'yt-dev',
+    platform: 'YouTube',
+    title: 'DSY Studio', 
+    url: 'https://www.youtube.com/@studiodsy',
+    icon: Youtube,
+    color: 'text-[#FF0000]' 
+  },  
+  
   {
     id: 'insta-studio',
     platform: 'DSY Studio Insta',
@@ -79,30 +81,8 @@ const SOCIAL_LINKS = [
     icon: Instagram,
     color: 'text-[#E1306C]'
   },
-  {
-    id: 'yt-dev',
-    platform: 'YouTube',
-    title: 'DSY Studio', 
-    url: 'https://www.youtube.com/@studiodsy',
-    icon: Youtube,
-    color: 'text-[#FF0000]' 
-  },
-  {
-    id: 'yt-art',
-    platform: 'YouTube',
-    title: 'Souhardyo Dey', 
-    url: 'https://www.youtube.com/@SouhardyoDey',
-    icon: Youtube,
-    color: 'text-[#FF0000]'
-  },
-  {
-    id: 'patreon',
-    platform: 'Patreon',
-    title: 'Support My Work',
-    url: 'https://www.patreon.com/cw/DSYStudio',
-    icon: Heart, 
-    color: 'text-[#F96854]' 
-  },
+  
+ 
   {
     id: 'sketchfab',
     platform: 'Sketchfab',
@@ -110,14 +90,6 @@ const SOCIAL_LINKS = [
     url: 'https://sketchfab.com/studiodsy',
     icon: Box, 
     color: 'text-[#1CAAD9]' 
-  },
-  {
-    id: 'artstation',
-    platform: 'ArtStation',
-    title: 'Portfolio',
-    url: 'https://www.artstation.com/studiodsy',
-    icon: Palette, 
-    color: 'text-[#13AFF0]' 
   },
   {
     id: 'github',
@@ -129,10 +101,10 @@ const SOCIAL_LINKS = [
   }
 ];
 
-// --- Global State for Session Logic ---
+// --- Global State ---
 let isInitialLoad = true;
 
-// --- Helper Component: Draggable Orbit ---
+// --- Draggable Orbit Component ---
 interface DraggableOrbitProps {
   radius: number;
   duration: number;
@@ -219,28 +191,21 @@ const DraggableOrbit = ({
   );
 };
 
-// --- Shared Components ---
+// --- Section Heading ---
 const SectionHeading = ({ children, subtitle }: { children: React.ReactNode; subtitle: string }) => (
   <div className="text-center mb-16">
-    <span 
-      className="text-primary font-semibold tracking-wider uppercase text-sm block"
-    >
+    <span className="text-primary font-semibold tracking-wider uppercase text-sm block">
       {subtitle}
     </span>
-    <h2 
-      className="text-3xl md:text-5xl font-bold mt-2 text-white"
-    >
+    <h2 className="text-3xl md:text-5xl font-bold mt-2 text-white">
       {children}
     </h2>
   </div>
 );
 
-// --- Smart Header Component ---
-interface SmartHeaderProps {
-  scrollContainerRef: React.RefObject<HTMLElement>;
-}
-
-const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
+// --- Smart Header ---
+const SmartHeader = ({ scrollContainerRef }: { scrollContainerRef: React.RefObject<HTMLElement> }) => {
+  const navigate = useNavigate();
   const { scrollY } = useScroll({ container: scrollContainerRef });
   
   const [hidden, setHidden] = useState(false);
@@ -248,18 +213,8 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
-    
-    if (latest > 50) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
-
-    if (latest > previous && latest > 150) {
-      setHidden(true);
-    } else {
-      setHidden(false);
-    }
+    setScrolled(latest > 50);
+    setHidden(latest > previous && latest > 150);
   });
 
   const scrollToSection = (id: string) => {
@@ -271,10 +226,7 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
 
   return (
     <motion.header
-      variants={{
-        visible: { y: 0 },
-        hidden: { y: "-100%" },
-      }}
+      variants={{ visible: { y: 0 }, hidden: { y: "-100%" } }}
       animate={hidden ? "hidden" : "visible"}
       transition={{ duration: 0.15, ease: "easeInOut" }}
       className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center justify-center pointer-events-none pr-2"
@@ -296,19 +248,22 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
               w-10 h-10 md:w-9 md:h-9 bg-white rounded-lg flex items-center justify-center glow-box transition-transform duration-300
               ${scrolled ? 'scale-90' : 'scale-100'}
             `}>
-              <img 
-                src={logoImg} 
-                alt="Souhardyo Dey Portfolio Logo" // SEO Update: Detailed Alt Text
-                className="w-5 h-5 md:w-10 md:h-10 object-contain" 
-              />
+              <img src={logoImg} alt="Souhardyo Dey Logo" className="w-5 h-5 md:w-10 md:h-10 object-contain" />
             </div>
           </div>
 
           <nav className="hidden md:flex items-center gap-8 pl-5">
-            {['Work', 'About', 'Contact'].map((item) => (
+            {/* UPDATED NAV ITEMS: Work, Social, About */}
+            {['Work', 'Social', 'About'].map((item) => (
               <button
                 key={item}
-                onClick={() => scrollToSection(item.toLowerCase())}
+                onClick={() => {
+                   if (item === 'Social') {
+                     navigate('/social');
+                   } else {
+                     scrollToSection(item.toLowerCase());
+                   }
+                }}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group py-2"
               >
                 {item}
@@ -317,6 +272,7 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
             ))}
           </nav>
 
+          {/* Contact Button (Kept as requested) */}
           <Button 
             variant="outline" 
             className="border-primary/50 text-primary hover:bg-primary/10 hidden sm:flex"
@@ -330,14 +286,13 @@ const SmartHeader = ({ scrollContainerRef }: SmartHeaderProps) => {
   );
 };
 
-// --- Main Component ---
-
+// --- Main Index Page ---
 export default function Index() {
   const navigate = useNavigate();
   const routerNavType = useNavigationType(); 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // --- EMAILJS CONFIGURATION ---
+  // EmailJS Config
   const SERVICE_ID = "service_91z7bip";
   const TEMPLATE_ID = "template_lyneuwr";
   const PUBLIC_KEY = "KNrnGILkw5jrZ3WzR";
@@ -345,16 +300,12 @@ export default function Index() {
   const formRef = useRef<HTMLFormElement>(null);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
-
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
   const [shouldAnimate, setShouldAnimate] = useState(false);
 
-  // --- SMART SCROLL & ANIMATION LOGIC ---
+  // Scroll & Animation Logic
   useLayoutEffect(() => {
     if (isInitialLoad) {
       isInitialLoad = false; 
-
       const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
       const isBrowserReload = navEntry?.type === 'reload';
 
@@ -386,7 +337,6 @@ export default function Index() {
       if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
       setShouldAnimate(false);
     }
-
   }, [routerNavType]);
 
   const handleNavigate = (path: string) => {
@@ -396,39 +346,13 @@ export default function Index() {
     navigate(path);
   };
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('id, title, category, image, description, featured')
-          .eq('featured', true)
-          .limit(4);
-
-        if (error) throw error;
-        if (data) setProjects(data);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-        toast.error("Failed to load projects");
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
-
-    fetchProjects();
-  }, []);
-
-  // --- UPDATED EMAIL SENDING LOGIC ---
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
 
     if (!formRef.current) return;
 
-    emailjs
-      .sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, {
-        publicKey: PUBLIC_KEY,
-      })
+    emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, { publicKey: PUBLIC_KEY })
       .then(
         () => {
           toast.success("Message sent successfully!");
@@ -439,25 +363,17 @@ export default function Index() {
           toast.error("Failed to send message. Please try again.");
         },
       )
-      .finally(() => {
-        setSending(false);
-      });
+      .finally(() => setSending(false));
   };
 
   const heroVariant = {
     hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.8 }
-    }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
   };
-
   const initialProp = shouldAnimate ? "hidden" : "visible";
 
   return (
     <div className="h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30 overflow-hidden relative">
-      
       <style>{`
         #scroll-container::-webkit-scrollbar { width: 8px; height: 8px; background-color: transparent; }
         #scroll-container::-webkit-scrollbar-track { background-color: rgba(10, 10, 10, 0.3); border-radius: 4px; }
@@ -468,19 +384,10 @@ export default function Index() {
 
       <SmartHeader scrollContainerRef={scrollContainerRef} />
 
-      <div 
-        ref={scrollContainerRef} 
-        className="h-full w-full overflow-y-auto overflow-x-hidden"
-        id="scroll-container"
-      >
+      <div ref={scrollContainerRef} className="h-full w-full overflow-y-auto overflow-x-hidden" id="scroll-container">
         <div className="fixed inset-0 z-[-1]">
           <div className="absolute inset-0 bg-[#0a0a0a]" />
-          <div 
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: 'radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.15) 0%, rgba(10, 10, 10, 1) 70%)'
-            }}
-          />
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.15) 0%, rgba(10, 10, 10, 1) 70%)' }} />
           <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
         </div>
 
@@ -488,58 +395,32 @@ export default function Index() {
           {/* HERO SECTION */}
           <section id="hero" className="min-h-screen flex flex-col justify-center pt-10 pb-24 relative overflow-hidden pl-7">
             <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center relative z-10 ">
-              <motion.div
-                variants={heroVariant}
-                initial={initialProp}
-                animate="visible"
-              >
+              <motion.div variants={heroVariant} initial={initialProp} animate="visible">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="h-[2px] w-8 bg-primary inline-block"></span>
                   <span className="text-primary font-semibold tracking-wider uppercase text-sm">
                     Souhardyo Dey | Game Developer <span className="lowercase"> and </span> VFX & CGI Artist
                   </span>
                 </div>
-                
                 <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight text-white">
                   Crafting Immersive <br className="hidden md:block"/>
                   <span className="text-primary glow-text">3D Worlds</span> & <span className="text-primary glow-text">VFX.</span>
                 </h1>
-                
                 <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-xl">
-                  I'm a Game Developer and VFX & CGI Artist with expertise in creating 
-                  stunning 3D environments and visual effects.
+                  I'm a Game Developer and VFX & CGI Artist with expertise in creating stunning 3D environments and visual effects.
                 </p>
-                
                 <div className="flex flex-wrap gap-4">
-                  <Button 
-                    size="lg" 
-                    className="bg-primary hover:bg-primary/90 text-white rounded-2xl px-8 h-14 text-base glow-box group"
-                    onClick={() => {
-                      document.getElementById('work')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    Explore Projects 
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"/>
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white rounded-2xl px-8 h-14 text-base glow-box group" onClick={() => document.getElementById('work')?.scrollIntoView({ behavior: 'smooth' })}>
+                    Explore Projects <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"/>
                   </Button>
-                  <Button 
-                    size="lg" 
-                    variant="ghost"
-                    className="text-white hover:bg-white/10 rounded-full h-14 px-8"
-                    onClick={() => {
-                      document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
+                  <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 rounded-full h-14 px-8" onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}>
                     More About Me
                   </Button>
                 </div>
               </motion.div>
 
-              {/* Orbit Animation */}
               <motion.div 
-                variants={{
-                   hidden: { opacity: 0, scale: 0.9 },
-                   visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.2 } }
-                }}
+                variants={{ hidden: { opacity: 0, scale: 0.9 }, visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.2 } }}}
                 initial={initialProp}
                 animate="visible"
                 className="relative h-[650px] hidden lg:flex items-center justify-center"
@@ -559,37 +440,18 @@ export default function Index() {
           {/* ABOUT SECTION */}
           <section id="about" className="py-2 relative">
             <div className="container mx-auto px-4 relative z-10">
-              <SectionHeading subtitle="My Journey">
-                About <span className="text-primary">Me</span>
-              </SectionHeading>
-
+              <SectionHeading subtitle="My Journey">About <span className="text-primary">Me</span></SectionHeading>
               <div className="max-w-4xl mx-auto text-center mb-16 space-y-6 text-lg text-muted-foreground leading-relaxed">
-                <p>
-                  I am <strong>Souhardyo Dey</strong>, a Game Developer and VFX & CGI Artist with expertise in creating 
-                  stunning 3D environments and visual effects. My work focuses on making worlds from my imagination and 
-                  creating games based on those worlds. 
-                </p>
-                <p>
-                  I specialize in 3D modelling, animation, shading and environment creation. In addition to these, I like to vibe code and 
-                  use AI to create things which are complex and takes a lot of time 
-                </p>
+                <p>I am <strong>Souhardyo Dey</strong>, a Game Developer and VFX & CGI Artist...</p>
+                <p>I specialize in 3D modelling, animation, shading and environment creation...</p>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {STUDIOS_CARDS.map((studio, idx) => (
-                  <div
-                    key={studio.id}
-                    onClick={() => handleNavigate(`/studio/${studio.id}`)}
-                    className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-primary/50 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden h-full flex flex-col justify-between text-left"
-                  >
+                {STUDIOS_CARDS.map((studio) => (
+                  <div key={studio.id} onClick={() => handleNavigate(`/studio/${studio.id}`)} className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-primary/50 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden h-full flex flex-col justify-between text-left">
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="relative z-10">
                       <div className="h-16 w-auto mb-6 flex items-center justify-start">
-                        <img 
-                          src={studio.logo} 
-                          alt={`${studio.name} - Co-founded by Souhardyo Dey`} // SEO Update
-                          className="h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
-                        />
+                        <img src={studio.logo} alt={`${studio.name} Logo`} className="h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <h3 className="text-2xl font-bold text-white mb-2">{studio.name}</h3>
                       <p className="text-sm text-primary font-medium uppercase tracking-wider mb-4">{studio.role}</p>
@@ -603,179 +465,122 @@ export default function Index() {
             </div>
           </section>
 
-          {/* WORK SECTION (SEAMLESS BLEND APPLIED) */}
+          {/* WORKS SECTION */}
           <section id="work" className="py-32 relative">
-            {/* Seamless Gradient Blend: Transparent Top -> Dark Middle -> Transparent Bottom */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/80 to-transparent pointer-events-none z-0" />
-
             <div className="container mx-auto px-4 relative z-10">
-              <SectionHeading subtitle="Portfolio">
-               My  <span className="text-primary">Works</span>
-              </SectionHeading>
-
-              {projectsLoading ? (
-                <div className="h-60 relative">
-                   <GlobalLoader />
-                </div>
-              ) : projects.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="relative mb-6 animate-bounce-slow">
-                       <div className="absolute inset-0 bg-yellow-500/20 blur-2xl rounded-full" />
-                       <Ghost className="w-24 h-24 text-orange-400 relative z-10" strokeWidth={1.2} />
+              <SectionHeading subtitle="Portfolio">My <span className="text-primary">Works</span></SectionHeading>
+              
+              {/* SELECTION CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                
+                {/* 1. Game Projects Card */}
+                <motion.div 
+                  whileHover={{ y: -5 }}
+                  onClick={() => handleNavigate('/projects')}
+                  className="group bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 md:p-12 cursor-pointer hover:border-primary/50 transition-all relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Gamepad2 className="w-10 h-10 text-primary" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">No Featured Works Yet</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      I'm currently brewing something magical in the lab. Check back soon for updates!
+                    <h3 className="text-3xl font-bold text-white mb-3">Game Projects</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Immersive games, interactive experiences, and software development.
                     </p>
-                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-                  {projects.map((project, index) => (
-                    <div
-                      key={project.id}
-                      onClick={() => handleNavigate(`/project/${project.id}`)}
-                      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] hover:border-primary/50 transition-all duration-500 cursor-pointer"
-                    >
-                      <div className="aspect-video overflow-hidden bg-gray-900">
-                        <img 
-                          src={project.image} 
-                          alt={`${project.title} - Game Project by Souhardyo Dey`} // SEO Update
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-80" />
-                      </div>
-                      
-                      <div className="absolute bottom-0 left-0 right-0 p-8">
-                        <span className="text-primary text-sm font-medium tracking-wider uppercase mb-2 block">
-                          {project.category}
-                        </span>
-                        <h3 className="text-2xl font-bold text-white mb-2">{project.title}</h3>
-                        <p className="text-muted-foreground text-sm line-clamp-2">{project.description}</p>
-                      </div>
+                    <span className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                      View Projects <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </motion.div>
+
+                {/* 2. Art Gallery Card */}
+                <motion.div 
+                  whileHover={{ y: -5 }}
+                  onClick={() => handleNavigate('/art')}
+                  className="group bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 md:p-12 cursor-pointer hover:border-cyan-500/50 transition-all relative overflow-hidden"
+                >
+                   {/* Using different color for Art (Cyan/Blue) */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Palette className="w-10 h-10 text-cyan-400" />
                     </div>
-                  ))}
-                </div>
-              )}
+                    <h3 className="text-3xl font-bold text-white mb-3">Art Gallery</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Concept art, 3D assets, posters, and visual design works.
+                    </p>
+                    <span className="text-sm font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                      View Gallery <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </motion.div>
+
+              </div>
             </div>
           </section>
 
-          {/* CONTACT SECTION (SEAMLESS BLEND APPLIED) */}
+          {/* CONTACT SECTION */}
           <section id="contact" className="py-32 relative">
-             {/* Subtle Bottom Gradient to Ground the Footer */}
             <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-0" />
-
             <div className="container mx-auto px-4 relative z-10">
-              <SectionHeading subtitle="Contact">
-                Get In <span className="text-primary">Touch</span>
-              </SectionHeading>
-
+              <SectionHeading subtitle="Contact">Get In <span className="text-primary">Touch</span></SectionHeading>
               <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
-                
-                {/* LEFT COLUMN: Social Links */}
+                {/* Social Links */}
                 <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                      Connect With Me
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Follow my journey, check out my 3D assets, or support my work on these platforms.
-                    </p>
+                   <div className="space-y-4">
+                    <h3 className="text-2xl font-bold text-white flex items-center gap-2">Connect With Me</h3>
+                    <p className="text-muted-foreground">Follow my journey, check out my 3D assets, or support my work.</p>
                   </div>
-                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {SOCIAL_LINKS.map((link) => (
-                      <a 
-                        key={link.id}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 rounded-xl transition-all duration-300 group"
-                      >
+                      <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 rounded-xl transition-all duration-300 group">
                         <div className={`p-3 rounded-lg bg-[#0a0a0a] border border-white/5 group-hover:border-white/20 transition-colors`}>
                           <link.icon className={`w-6 h-6 ${link.color}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground mb-0.5 font-medium uppercase tracking-wider">
-                            {link.platform}
-                          </p>
-                          <p className="text-sm font-bold text-white group-hover:text-primary truncate transition-colors">
-                            {link.title}
-                          </p>
+                          <p className="text-xs text-muted-foreground mb-0.5 font-medium uppercase tracking-wider">{link.platform}</p>
+                          <p className="text-sm font-bold text-white group-hover:text-primary truncate transition-colors">{link.title}</p>
                         </div>
                         <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-white opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                       </a>
                     ))}
                   </div>
                 </div>
-
-                {/* RIGHT COLUMN: Contact Form - ATTACHED REF HERE */}
+                {/* Contact Form */}
                 <div className="relative">
                    <div className="bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-3xl shadow-2xl relative z-10">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Mail className="w-5 h-5 text-primary" />
-                      </div>
+                      <div className="p-2 bg-primary/10 rounded-lg"><Mail className="w-5 h-5 text-primary" /></div>
                       <h3 className="text-xl font-bold text-white">Send a Message</h3>
                     </div>
-                    
                     <form ref={formRef} onSubmit={handleContactSubmit} className="space-y-5">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground ml-1">Name</label>
-                        <Input
-                          name="user_name" // Added Name Attribute
-                          placeholder="Your Name"
-                          value={contactForm.name}
-                          onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                          required
-                          className="bg-white/5 border-white/10 focus:border-primary/50 h-12 rounded-xl"
-                        />
+                        <Input name="user_name" placeholder="Your Name" value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} required className="bg-white/5 border-white/10 focus:border-primary/50 h-12 rounded-xl" />
                       </div>
                       <div className="space-y-2">
                          <label className="text-sm font-medium text-muted-foreground ml-1">Email</label>
-                        <Input
-                          name="user_email" // Added Name Attribute
-                          type="email"
-                          placeholder="Your Email"
-                          value={contactForm.email}
-                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                          required
-                          className="bg-white/5 border-white/10 focus:border-primary/50 h-12 rounded-xl"
-                        />
+                        <Input name="user_email" type="email" placeholder="Your Email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} required className="bg-white/5 border-white/10 focus:border-primary/50 h-12 rounded-xl" />
                       </div>
                       <div className="space-y-2">
                          <label className="text-sm font-medium text-muted-foreground ml-1">Message</label>
-                        <Textarea
-                          name="message" // Added Name Attribute
-                          placeholder="How can I help you?"
-                          value={contactForm.message}
-                          onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                          required
-                          rows={5}
-                          className="bg-white/5 border-white/10 focus:border-primary/50 resize-none rounded-xl"
-                        />
+                        <Textarea name="message" placeholder="How can I help you?" value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} required rows={5} className="bg-white/5 border-white/10 focus:border-primary/50 resize-none rounded-xl" />
                       </div>
-                      <Button 
-                        type="submit" 
-                        size="lg" 
-                        className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-lg glow-box rounded-xl mt-2"
-                        disabled={sending}
-                      >
+                      <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-lg glow-box rounded-xl mt-2" disabled={sending}>
                         {sending ? "Sending..." : "Send Message"}
                       </Button>
                     </form>
                   </div>
-                  {/* Decorative element behind form */}
                   <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 blur-[80px] rounded-full pointer-events-none" />
                 </div>
-
               </div>
             </div>
           </section>
 
           <footer className="py-8 border-t border-white/5 text-center text-sm text-muted-foreground relative z-10">
-            <div className="container mx-auto px-4">
-              <p>© {new Date().getFullYear()} Souhardyo Dey. All Rights Reserved</p>
-            </div>
+            <div className="container mx-auto px-4"><p>© {new Date().getFullYear()} Souhardyo Dey. All Rights Reserved</p></div>
           </footer>
         </main>
       </div>
