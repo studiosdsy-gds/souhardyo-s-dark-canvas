@@ -11,6 +11,7 @@ import ProjectDetails from "./pages/ProjectDetail";
 import Social from "./pages/Social";
 import Art from "./pages/Art";
 import Projects from "./pages/Projects";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const queryClient = new QueryClient();
 
