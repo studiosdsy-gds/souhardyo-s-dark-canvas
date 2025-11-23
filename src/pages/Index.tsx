@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import logoImg from '@/assets/your-logo.png';
 import emailjs from '@emailjs/browser';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 // --- Data Constants ---
 const STUDIOS_CARDS = [
